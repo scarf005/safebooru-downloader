@@ -3,7 +3,7 @@
 Downloads all images available with matching tags from Safebooru
 forked from [@PRISISM](https://github.com/PRISISM/safebooru-downloader)
 
-# What's changed
+## What's changed
 
 uses python's asynchronous modules, namely
 
@@ -19,3 +19,7 @@ with async: 4.7seconds
 without async: 108.8seconds
 speed difference: 2314%
 ```
+
+## TODO
+
+program downloads image first then checks if there are duplicates
