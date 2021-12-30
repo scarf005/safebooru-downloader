@@ -7,6 +7,8 @@ original script from [@PRISISM](https://github.com/PRISISM/safebooru-downloader)
 
 to concurrently download images in bulk.
 
+`usage: run.py [-h] [-p PATH] tags [tags ...]`
+
 # What's changed
 
 benchmark using 5 tags:
@@ -20,4 +22,5 @@ without async: 108.8seconds
 
 ## TODO
 
-program downloads image first then checks if there are duplicates
+- program downloads image first then checks if there are duplicates
+- package into working module
