@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from re import findall
+from typing import Generator
 
 import bs4
 import requests
@@ -44,15 +45,6 @@ def download_image(url, directory: str):
         f.write(image.content)
 
 
-def get_image(url):
-    """Get the image from a url."""
-    imagePage = requests.get(url)
-    imageSoup = bs4.BeautifulSoup(imagePage.text, features="html.parser")
-    image = imageSoup.find(id="image")
-    if image:
-        return image.get("src")
-
-
 def get_next_page(page, url):
     """Get the next page. Returns None if it is the last page."""
     nextSoup = page.find("a", alt="next")
@@ -67,11 +59,14 @@ class Downloader:
     def __init__(self, config: Config) -> None:
         self.config = config
         self.images = Images()
-        self.Page: list[Page] = [Page(self.config.baseurl)]
+        self.pages: list[Page] = [Page(self.config.baseurl)]
         self.config.path.mkdir(parents=True, exist_ok=True)
 
     def run(self):
-        print(self.Page)
+        # download_links = (Downloader.get_image(l) for l in self.pages[0].links)
+        for l in self.pages[0].links_download:
+            print(l)
+        # print([])
         ...
         # while True:
         # ...
@@ -83,16 +78,19 @@ class Page:
     url: str
     soup: Soup = field(init=False, repr=False)
     links: list[str] = field(init=False, repr=False)
+    links_download: Generator[str, None, None] = field(init=False, repr=False)
     ids: list[str] = field(init=False)
 
     def __post_init__(self):
-        self.soup = self.get_soup()
+        self.soup = Page.get_soup(self.url, strict=True)
         self.links = self.get_image_links()
         self.ids = self.get_ids()
+        self.links_download = self.gen_image_links_download()
 
-    def get_soup(self) -> Soup:
-        res = requests.get(self.url)
-        if "Nothing found" in res.text:
+    @staticmethod
+    def get_soup(url, *, strict: bool = False) -> Soup:
+        res = requests.get(url)
+        if strict and "Nothing found" in res.text:
             raise ValueError("No images found, check your tags?")
         return Soup(res.text, features="html.parser")
 
@@ -101,6 +99,21 @@ class Page:
         return [
             self.url + link.get("href") for link in links if link.find("img")
         ]
+
+    # generator
+    # def get_image(url) -> str | list[str] | None:
+    def gen_image_links_download(self):
+        for link in self.links:
+            image = Page.get_soup(link).find(id="image")
+            # imagePage = requests.get(link)
+            # imageSoup = bs4.BeautifulSoup(imagePage.text, features="html.parser")
+            # image = imageSoup.find(id="image")
+            if isinstance(image, bs4.element.Tag):
+                res = image.get("src")
+                if isinstance(res, list):
+                    yield from res
+                else:
+                    yield res
 
     @staticmethod
     def get_id(url) -> str | None:
@@ -119,9 +132,6 @@ def main():
     downloader = Downloader(config)
     downloader.run()
     exit()
-    imagescount = 0
-    pagecount = 1
-
     while True:
         print("Getting images, this might take a while...")
         images = [
