@@ -1,20 +1,15 @@
 from __future__ import annotations
 
 from asyncio import gather, run
-from dataclasses import dataclass, field
 from pathlib import Path
-from time import time
-from typing import Optional
 
 from aiohttp.client import ClientSession
-from aiohttp.client_reqrep import ClientResponse
-from aiopath import AsyncPath
 from bs4 import BeautifulSoup as Soup
-from bs4.element import NavigableString, Tag
+from bs4.element import Tag
 from multidict import MultiDict
 from yarl import URL
 
-from config import Config, Params
+from .config import Config
 
 
 class Engine:
@@ -51,10 +46,7 @@ class Engine:
             for a in anchors
             if a.find("img")
         ]
-
-        # download images using url with async
-        await self.save(imgs[1])
-        print(imgs[1])
+        await gather(*[self.save(img) for img in imgs])
 
     # called page search
     async def fetch(self, url: str) -> None:
@@ -81,11 +73,8 @@ class Engine:
         await gather(*[self.fetch(link) for link in await get_links(tags)])
 
 
-test_url = "https://safebooru.org//samples/3598/sample_a406fd8bba13072c4c3db4ceb803821ed059c920.jpg?3758206"
-
-
 async def main():
-    config = Config("touhou 1girl scenery bird")  #
+    config = Config("touhou 1girl scenery bird")
 
     async with ClientSession() as session:
         downloader = Engine(session, config)
