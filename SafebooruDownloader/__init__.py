@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from asyncio import run
+from asyncio import gather, run
 from dataclasses import dataclass, field
 from time import time
 from typing import Optional
@@ -27,6 +27,13 @@ class Engine:
             if not await path.exists():
                 await path.write_bytes(await res.read())
 
+    async def fetch(self, url: str):
+        async with self.session.get(url) as res:
+            soup = Soup(await res.text(), "html.parser")
+            anchors = soup.find_all("a", href=True)
+            imgs = [a["href"] for a in anchors if a.find("img")]
+            print(imgs)
+
     async def initlinks(self):
         url, params = self.config.baseurl, self.config.params
         async with self.session.get(url, params=params) as res:
@@ -37,10 +44,18 @@ class Engine:
         alt = soup.find("a", alt="last page")
         if not alt:
             return
-        last = URL(alt["href"]).query["pid"]  # type: ignore
-        pids = [i * 40 for i in range(1, int(last) // 40)]
+        # print(alt["href"], self.config.baseurl)
+        last = URL(alt["href"])
+        print(last.query_string)
+        params = "&".join(
+            [f"{k}={v}" for k, v in last.query.items() if k != "pid"]
+        )
 
-        print(pids)
+        pid = last.query["pid"]  # type: ignore
+        pids = [i * 40 for i in range(1, int(pid) // 40)]
+        links = [f"{url}?{params}&pid={pid}" for pid in pids]
+        await gather(*[self.fetch(link) for link in links])
+        # print(pids)
         # print(imgs)
         # for a in :
         #     print(a["href"])

@@ -5,6 +5,7 @@ from yarl import URL
 
 Params = dict[str, str]
 
+
 @dataclass
 class Config:
     _raw_tags: str = field(repr=False)
@@ -16,5 +17,5 @@ class Config:
     def __post_init__(self):
         self.tags = self._raw_tags.split(" ")
         self.path /= "-".join(self.tags)
-        self.baseurl = URL("http://safebooru.org/index.php?page=post")
-        self.params = {"s": "list", "tags": self._raw_tags}
+        self.baseurl = URL("http://safebooru.org/index.php")
+        self.params = {"page": "post", "s": "list", "tags": self._raw_tags}
