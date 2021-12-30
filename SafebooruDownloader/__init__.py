@@ -10,6 +10,7 @@ from multidict import MultiDict
 from yarl import URL
 
 from .config import Config
+from .parseargs import args
 
 
 class Engine:
@@ -73,12 +74,11 @@ class Engine:
         await gather(*[self.fetch(link) for link in await get_links(tags)])
 
 
-async def main():
-    config = Config("touhou 1girl scenery bird")
-
+async def main(config: Config):
     async with ClientSession() as session:
         downloader = Engine(session, config)
         await downloader.fetch_all()
 
-
-run(main())
+if __name__ == '__main__':
+    config = Config(args.tags, path=args.path)
+    run(main(config))
