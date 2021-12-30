@@ -125,6 +125,7 @@ async def get_soup(url: str, *, strict: bool = False) -> Soup:
     return Soup(res.text, features="html.parser")
 
 async def main():
+    ...
     # page = Page("http://safebooru.org/index.php?page=post&s=list&tags=touhou")
     # raw_tags = input("Enter tags separated by spaces\n")
     # path = Path()
