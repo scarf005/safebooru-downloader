@@ -1,4 +1,5 @@
 **/*.jpeg
 **/*.png
 
+.venv
 learn_async.py
