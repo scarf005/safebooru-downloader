@@ -1,17 +1,37 @@
 #!/usr/bin/env python3
 
-import os
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from re import findall
 
 import bs4
 import requests
 from bs4 import BeautifulSoup as Soup
 
-""" Safebooru Downloader
 
-Downloads all images available of selected tags from http://safebooru.org/
+@dataclass
+class Config:
+    raw_tags: str = field(repr=False)
+    path: Path = field(default_factory=Path)
+    baseurl: str = field(init=False, repr=False)
+    tags: list[str] = field(init=False, default_factory=list)
 
-Author: toashel @ http://github.com/toashel
-"""
+    def __post_init__(self):
+        self.tags = self.raw_tags.split(" ")
+        if self.path == Path():
+            self.path /= "img"
+        self.path /= "-".join(self.tags)
+        self.baseurl = (
+            "http://safebooru.org/index.php?page=post&s=list&"
+            f"tags={self.raw_tags}"
+        )
+
+
+@dataclass
+class Images:
+    ...
 
 
 def download_image(url, directory: str):
@@ -33,14 +53,6 @@ def get_image(url):
         return image.get("src")
 
 
-def get_image_links(page: Soup, url: str, pagecount) -> list[str]:
-    """Get all image links on a page."""
-    print(f"Getting image links for Page {pagecount}...")
-    links = page.find_all("a")
-    imageLinks = [url + link.get("href") for link in links if link.find("img")]
-    return imageLinks
-
-
 def get_next_page(page, url):
     """Get the next page. Returns None if it is the last page."""
     nextSoup = page.find("a", alt="next")
@@ -51,35 +63,66 @@ def get_next_page(page, url):
     return requests.get(nextUrl)
 
 
+class Downloader:
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self.images = Images()
+        self.Page: list[Page] = [Page(self.config.baseurl)]
+        self.config.path.mkdir(parents=True, exist_ok=True)
+
+    def run(self):
+        print(self.Page)
+        ...
+        # while True:
+        # ...
+        # self.Page.append(Page(self.get_image_links()))
+
+
+@dataclass
+class Page:
+    url: str
+    soup: Soup = field(init=False, repr=False)
+    links: list[str] = field(init=False, repr=False)
+    ids: list[str] = field(init=False)
+
+    def __post_init__(self):
+        self.soup = self.get_soup()
+        self.links = self.get_image_links()
+        self.ids = self.get_ids()
+
+    def get_soup(self) -> Soup:
+        res = requests.get(self.url)
+        if "Nothing found" in res.text:
+            raise ValueError("No images found, check your tags?")
+        return Soup(res.text, features="html.parser")
+
+    def get_image_links(self) -> list[str]:
+        links = self.soup.find_all("a")
+        return [
+            self.url + link.get("href") for link in links if link.find("img")
+        ]
+
+    @staticmethod
+    def get_id(url) -> str | None:
+        res = findall(r"(?<=\&id=)\d*", url)
+        return res.pop() if res else None
+
+    def get_ids(self):
+        ids = [Page.get_id(l) for l in self.links]
+        return [i for i in ids if i is not None]
+
+
 def main():
-    url = "http://safebooru.org/"
-
-    userSearch: str = input(
-        "What tags are you searching for?\nEnter them all separated by spaces!\n\n"
-    )
-    userURL: str = (
-        f"http://safebooru.org/index.php?page=post&s=list&tags={userSearch}"
-    )
-
-    path = "safeboorudownloader/" + userSearch
-    os.makedirs(path, exist_ok=True)
-    # store images in a directory named after search
-
+    raw_tags = input("Enter tags separated by spaces\n")
+    path = Path(input("Enter download path, blank for cwd\n"))
+    config = Config(raw_tags=raw_tags, path=path)
+    downloader = Downloader(config)
+    downloader.run()
+    exit()
     imagescount = 0
     pagecount = 1
-    res = requests.get(userURL)  # page 1
-
-    if "Nothing found" in res.text:
-        print("No images found, check your tags?")
-        return
 
     while True:
-        soup = bs4.BeautifulSoup(res.text)
-
-        # array of links to images
-        imageLinks = get_image_links(soup, url, pagecount)
-        imagescount += len(imageLinks)
-
         print("Getting images, this might take a while...")
         images = [
             get_image(link) for link in imageLinks
