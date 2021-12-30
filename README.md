@@ -1,7 +1,8 @@
 # Safebooru Downloader
 
 Downloads all images available with matching tags from Safebooru
-original script from [@PRISISM](https://github.com/PRISISM/safebooru-downloader), rewritten from scratch with uses python's asynchronous modules, namely
+
+original script from [@PRISISM](https://github.com/PRISISM/safebooru-downloader), rewritten from scratch using python's asynchronous modules
 
 [`asyncio`](https://docs.python.org/3/library/asyncio.html), [`aiohttp`](https://github.com/aio-libs/aiohttp), [`aiopath`](https://github.com/alexdelorenzo/aiopath)
 
